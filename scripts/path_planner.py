@@ -14,10 +14,6 @@ from geometry_msgs.msg import PoseStamped
 
 import cv2
 
-import sys
-import argparse
-from jetbrain_path import PRMController, Obstacle, Utils
-
 
 
 class Planner:
@@ -82,6 +78,9 @@ class Planner:
 		rospy.loginfo(rospy.get_caller_id() + log)
 
 	def callback_OGrid(self, msg):
+		# Generating Ogrid Image through OpenCV + diltation for path-planning
+		# Inspired by this library: https://github.com/jnez71/lqRRT
+
 		self.oGrid = np.array(msg.data).reshape((msg.info.height, msg.info.width))
 		self.oGridOrigin = np.array([msg.info.origin.position.x, msg.info.origin.position.y])
 		
@@ -103,8 +102,6 @@ class Planner:
 
 		rospy.loginfo(rospy.get_caller_id() + ": Occupency Grid updated, shape : " + str(self.oGrid.shape) + ", origin : " + str(self.oGridOrigin) )
 
-		# Generating Ogrid Image through OpenCV + diltation for path-planning
-		# Inspired by this library: https://github.com/jnez71/lqRRT
 
 		"""
 		# Construct the initial sample space and get bounds in pixel coordinates
