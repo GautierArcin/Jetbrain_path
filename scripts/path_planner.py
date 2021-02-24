@@ -44,6 +44,24 @@ class Planner:
 		rospy.Subscriber('end', PoseStamped, self.callback_endPos)
 		rospy.spin() 
 
+	def isPlannerExecutable(self):
+		returnBool = True
+
+		# Checking if we're lacking data to execute planner
+		if startPoint is None:
+			returnBool = False
+			rospy.log(rospy.get_caller_id() + ": Can't execute planner, start point is lacking")
+		if endPoint is None:
+			returnBool = False
+			rospy.log(rospy.get_caller_id() + ": Can't execute planner, end point is lacking")
+		if oGrid is None:
+			returnBool = False
+			rospy.log(rospy.get_caller_id() + ": Can't execute planner, map is lacking")
+
+		#  @ Check if start or end point outside dimension of current map
+
+		return returnBool
+
 
 	def callback_startPos(self, msg):
 		self.startPoint = np.array([msg.pose.position.x, msg.pose.position.y])
@@ -97,10 +115,20 @@ class Planner:
 		robotPix = int(self.oGridCPM*self.robotFootprint)
 		robotPix += robotPix%2
 		occImgDil = cv2.dilate(occImg, np.ones((robotPix, robotPix), np.uint8))
+
+		#Flip the image (Might be Uncessary, did it to have the same orientation as Rviz vizualization)
+		occImgDilFlip = cv2.flip(occImgDil, 1)
+
+		cv2.imshow("Map", occImg)
 		cv2.imshow("Dilated map", occImgDil)
+		cv2.imshow("Dilated map Flipped", occImgDilFlip)
 		cv2.waitKey(0)
 
+
+		height, width  = occImg.shape 
+
 		rospy.loginfo(rospy.get_caller_id() + ": Occupency Grid updated, shape : " + str(self.oGrid.shape) + ", origin : " + str(self.oGridOrigin) )
+		rospy.loginfo(rospy.get_caller_id() + ": Image shape : " + str(height) + ", " + str(width) )
 
 
 		"""
