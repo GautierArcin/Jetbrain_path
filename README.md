@@ -10,11 +10,13 @@
 Assuming you have a catkin environnement in ***catkin_ws***
 
 `cd ~/catkin_ws/src`
+
 `git clone https://github.com/GautierArcin/Jetbrain_path.git`
 
 #### Build
 
 `cd ~/catkin_ws/`
+
 `catkin_make`
 
 #### Dependencies: 
@@ -34,11 +36,14 @@ It's possible to vizualize the output on rviz, or save a video of the map with t
 
 In a first terminal: 
 `roslaunch jetbrain_path jetbrain-path.launch`
+
 (launch map + rviz)
 
 In a second one: 
 `cd ~/catkin_ws/`
+
 `source devel/setup/.bash`
+
 `rosrun jetbrain_path path_planner.py`
 
 
