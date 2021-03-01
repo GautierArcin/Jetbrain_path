@@ -1,0 +1,7 @@
+<launch>
+	<arg name="map_file" default="$(find jetbrain_path)/map/path_planning_assignment/candidate_assigment/test_map/test.yaml"/>
+	<!-- Run the map server -->
+	<node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
+
+	<node type="rviz" name="rviz" pkg="rviz" />
+</launch>
