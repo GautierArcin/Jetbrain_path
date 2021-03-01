@@ -56,10 +56,10 @@ In a second one:
 
 #### Option of the script
 
-* --robotSize: Diameter of the robot \[ m \], default=0.160
+* --robotSize: Diameter of the robot, default=0.160 \[ m \]
 * --nSample: Number of point to sample in Planner, default=500
 * --edgeMax: Maximum edge from one sample point, default= 10
-* --maxEdgeLength: Max length of edge in planner, default= 10.0 [m]
+* --maxEdgeLength: Max length of edge in planner, default= 10.0 \[ m \]
 * --saveImage: Save planning to video + gif after having realized it, default=false
 
 #### Optional copy/paste to publish on start/end 
