@@ -3,9 +3,7 @@
 Deliverable is a ROS package, that is capable of constructing a route from point A to point B, avoiding obstacles from the map.
 
 <br>
-The path-planner uses a [PRM](https://en.wikipedia.org/wiki/Probabilistic_roadmap).
-
-<br>
+The path-planner uses a PRM.
 Results of the PRM can be exported to a video/gif or can  be vizualized on RVIZ
 
 <br>
