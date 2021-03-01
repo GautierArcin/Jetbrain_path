@@ -39,7 +39,7 @@ In a first terminal:
 
 `cd ~/catkin_ws/`
 
-`source devel/setup/.bash`
+`source devel/setup.bash`
 
 `roslaunch jetbrain_path jetbrain-path.launch`
 
@@ -68,7 +68,8 @@ Totally optional paste. In order to give start/end point in an easy way.
  
 ##### Publish on /start
 
-`rostopic pub /start geometry_msgs/PoseStamped "header:
+```
+rostopic pub /start geometry_msgs/PoseStamped "header:
   seq: 0
   stamp:
     secs: 0
@@ -83,12 +84,14 @@ pose:
     x: 0.0
     y: 0.0
     z: 0.0
-    w: 0.0" `
+    w: 0.0" 
+ ```
 
  
 ##### Publish on /end
 
-`rostopic pub /end geometry_msgs/PoseStamped "header:
+```
+rostopic pub /end geometry_msgs/PoseStamped "header:
   seq: 0
   stamp:
     secs: 0
@@ -103,4 +106,5 @@ pose:
     x: 0.0
     y: 0.0
     z: 0.0
-    w: 0.0" `
+    w: 0.0" 
+    ```
