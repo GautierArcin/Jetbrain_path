@@ -21,8 +21,6 @@ Results of the PRM can be exported to a video/gif or can  be vizualized on RVIZ
 
 ## Galery
 
-<br>
-
 ### Path-planning with 500 points
 
 <br>
