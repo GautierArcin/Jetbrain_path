@@ -35,11 +35,18 @@ It's possible to vizualize the output on rviz, or save a video of the map with t
 #### Running the script:
 
 In a first terminal: 
+
+
+`cd ~/catkin_ws/`
+
+`source devel/setup/.bash`
+
 `roslaunch jetbrain_path jetbrain-path.launch`
 
 (launch map + rviz)
 
 In a second one: 
+
 `cd ~/catkin_ws/`
 
 `source devel/setup/.bash`
