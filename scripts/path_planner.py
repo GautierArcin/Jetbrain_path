@@ -12,10 +12,13 @@ from scipy.spatial.transform import Rotation as R
 import cv2
 import numpy as np
 import math
+from threading import Thread, Lock
 
 import tf
 
 from jetbrain_path import PRM
+
+
 
 import argparse
 
@@ -50,6 +53,9 @@ class Planner:
 		self.plannerEdgeFromeOneSamplePoint = plannerEdgeFromeOneSamplePoint
 		self.maxEdgeLength = maxEdgeLength
 		self.saveImage = saveImage
+
+		#lock for callback
+		self.mutex = Lock()
 
 
 		#RosCallback
@@ -108,6 +114,9 @@ class Planner:
 
 
 	def executePlanner(self):
+		#Locking
+
+		self.mutex.acquire(1)
 
 		if(self.isPlannerExecutable()):
 
@@ -183,6 +192,9 @@ class Planner:
 				message = "goal not found in " + str( difference) + "s... Try to change points or parameter of the planner."
 				rospy.logwarn(message)
 
+		#relashing mutex
+		self.mutex.release()
+
 	def brodcastTransform(self, trans, rot, time, tf1, tf2):
 		br = tf.TransformBroadcaster()
 		br.sendTransform(trans, rot, time, tf1, tf2)
@@ -251,11 +263,15 @@ class Planner:
 		#if self.oGrid is not None: 
 		# Get opencv-ready image from current ogrid (255 is occupied, 0 is clear)
 		oGridThreeshold = 90
-		occImg = 255*np.greater(self.oGrid, oGridThreeshold).astype(np.uint8)
+		elements = range(0,oGridThreeshold)
+		#occImg = 255*np.greater(np.self.oGrid, oGridThreeshold).astype(np.uint8)
+		occImg = 255*np.isin(self.oGrid, elements, invert=True).astype(np.uint8)
 
 		#Flip the image (Might be Uncessary, did it to have the same orientation as Rviz vizualization)
 		occImgFlip = cv2.flip(occImg, 1)
-
+		#cv2.imshow("test",occImgFlip)
+		#cv2.waitKey(0)
+		#cv2.destroyAllWindows()
 		self.image = occImgFlip
 
 		height, width  = occImg.shape 
