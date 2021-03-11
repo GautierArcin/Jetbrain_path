@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 from scipy.spatial import cKDTree
 
+
 class Node:
     """
     Node class for dijkstra search algorithm
@@ -28,7 +29,7 @@ class PRM:
 
     """
 
-    def __init__(self, image, res, sx, sy, gx, gy, robotSize, NSample=500, edgeFromeOneSamplePoint=20, maxEdgeLength=10.0):
+    def __init__(self, image, res, sx, sy, gx, gy, robotSize, NSample=500, maxEdgeFromeOneSamplePoint=20, maxEdgeLength=10.0, _precisionFactor=2.5):
         self._image = image
         self._res = res
 
@@ -38,12 +39,13 @@ class PRM:
         self._gy = gy
         self._robotSize = robotSize
 
-        self._edgeFromeOneSamplePoint = edgeFromeOneSamplePoint
+        self._maxEdgeFromeOneSamplePoint = maxEdgeFromeOneSamplePoint
         self._NSample = NSample
         self._maxEdgeLength = maxEdgeLength
+        self._precisionFactor = _precisionFactor
 
     def __str__(self):
-        return "Prm planner with parameters : \nNumber Sample : " + str(self._NSample) + ", Maximum edge from one point : " + str(self._edgeFromeOneSamplePoint) + ", Maximum edge length : " + str(self._maxEdgeLength)
+        return "Prm planner with parameters : \nNumber Sample : " + str(self._NSample) + ", Maximum edge from one point : " + str(self._maxEdgeFromeOneSamplePoint) + ", Maximum edge length : " + str(self._maxEdgeLength)
 
     def getObstaclesFromImage(self):
         ox = []
@@ -65,8 +67,11 @@ class PRM:
         sample_x, sample_y = self.generateSamplePoints(
             ox, oy, obstacle_kd_tree)
 
+        import time
+        start = time.clock()
         road_map = self.generateRoadMap(
             sample_x, sample_y, obstacle_kd_tree)
+        print(" Time generate roadmap: " + str(time.clock() - start))
 
         rx, ry = self.dijkstra(road_map, sample_x, sample_y)
 
@@ -81,24 +86,24 @@ class PRM:
         d = math.hypot(dx, dy)
 
         if d > self._maxEdgeLength:
-            return True # not checking if collision or not
+            return True  # not checking if collision or not
 
         D = self._robotSize
-        n_step = round(d / D)
+        n_step = round(d / D / self._precisionFactor)
 
         for i in range(int(n_step)):
             dist, _ = obstacle_kd_tree.query([x, y])
-            if dist <= self._robotSize:
+            if dist <= self._robotSize * self._precisionFactor:
                 return True  # it's a collision
-            x += D * math.cos(yaw)
-            y += D * math.sin(yaw)
+            x += D * math.cos(yaw) * self._precisionFactor
+            y += D * math.sin(yaw) * self._precisionFactor
 
         # goal point check
         dist, _ = obstacle_kd_tree.query([self._gx, self._gy])
         if dist <= self._robotSize:
             return True  # it's a collision
 
-        return False # it's not a collision
+        return False  # it's not a collision
 
     def generateRoadMap(self, sample_x, sample_y, obstacle_kd_tree):
 
@@ -108,7 +113,8 @@ class PRM:
 
         for (i, ix, iy) in zip(range(nSample), sample_x, sample_y):
 
-            dists, indexes = sample_kd_tree.query([ix, iy], k=nSample)
+            dists, indexes = sample_kd_tree.query(
+                [ix, iy], k=self._maxEdgeFromeOneSamplePoint, n_jobs=-1)
             edge_id = []
 
             for ii in range(1, len(indexes)):
@@ -117,9 +123,6 @@ class PRM:
 
                 if not self.isCollision(ix, iy, nx, ny, obstacle_kd_tree):
                     edge_id.append(indexes[ii])
-
-                if len(edge_id) >= self._edgeFromeOneSamplePoint:
-                    break
 
             road_map.append(edge_id)
 
@@ -248,7 +251,6 @@ class PRM:
         for i in range(6):  # 3 seconds of wait
             video.write(imageStart)
 
-        
         if(rx != None):
             imageSubsequent = imageStart
             for i in range(len(rx)-2, 0, -1):
@@ -279,14 +281,14 @@ class PRM:
             filePathOut = "output.gif"
             command = "ffmpeg -y -i " + \
                 str(filePathIn) + \
-                " -filter_complex \"[0:v] split [a][b];[a] palettegen [p];[b][p] paletteuse\" " + str(
+                " -hide_banner -loglevel error -filter_complex \"[0:v] split [a][b];[a] palettegen [p];[b][p] paletteuse\" " + str(
                     filePathOut)
             os.system(command)
 
 
 if __name__ == "__main__":
 
-    img = cv2.imread(__file__.replace("prm.py", "input2.png"), 0)
+    img = cv2.imread(__file__.replace("PRM.py", "map.png"), 0)
     res = 20.0
     sx = 16.6
     sy = 1.6
@@ -297,4 +299,3 @@ if __name__ == "__main__":
     test = PRM(img, res, sx, sy, gx, gy, robotSize)
     rx, ry = test.startPlanner()
     test.saveToVideo(rx, ry, True)
-
