@@ -30,7 +30,7 @@ class PRM:
 
     """
 
-    def __init__(self, image, res, sx, sy, gx, gy, robotSize, NSample=1000, edgeFromeOneSamplePoint=10, maxEdgeLength=10.0):
+    def __init__(self, image, res, sx, sy, gx, gy, robotSize, NSample=500, edgeFromeOneSamplePoint=20, maxEdgeLength=10.0):
         self._image = image
         self._res = res
 
@@ -89,26 +89,54 @@ class PRM:
 
         return rx, ry
 
+    # def isCollision(self, sx, sy, gx, gy, obstacle_kd_tree):
+    #     x = sx
+    #     y = sy
+    #     dx = gx - sx
+    #     dy = gy - sy
+    #     yaw = math.atan2(dy, dx)
+    #     d = math.hypot(dx, dy)
+
+    #     if d > self._maxEdgeLength:
+    #         return True  # not checking if collision or not
+
+    #     D = self._robotSize
+    #     n_step = round(d / D)
+
+    #     for i in range(int(n_step)):
+    #         dist, _ = obstacle_kd_tree.query([x, y])
+    #         if dist <= self._robotSize:
+    #             return True  # it's a collision
+    #         x += D * math.cos(yaw)
+    #         y += D * math.sin(yaw)
+
+    #     # goal point check
+    #     dist, _ = obstacle_kd_tree.query([self._gx, self._gy])
+    #     if dist <= self._robotSize:
+    #         return True  # it's a collision
+
+    #     return False  # it's not a collision
+
+    
     def isCollision(self, sx, sy, gx, gy, obstacle_kd_tree):
         x = sx
         y = sy
         dx = gx - sx
         dy = gy - sy
-        yaw = math.atan2(dy, dx)
-        d = math.hypot(dx, dy)
+        d = dx + dy
 
         if d > self._maxEdgeLength:
             return True  # not checking if collision or not
-
-        D = self._robotSize
-        n_step = round(d / D)
+        
+        yaw = math.atan2(dy, dx)
+        n_step = round(d / self._robotSize)
 
         for i in range(int(n_step)):
             dist, _ = obstacle_kd_tree.query([x, y])
             if dist <= self._robotSize:
                 return True  # it's a collision
-            x += D * math.cos(yaw)
-            y += D * math.sin(yaw)
+            x += self._robotSize * math.cos(yaw)
+            y += self._robotSize * math.sin(yaw)
 
         # goal point check
         dist, _ = obstacle_kd_tree.query([self._gx, self._gy])
@@ -119,17 +147,23 @@ class PRM:
 
     def generateRoadMap(self, sample_x, sample_y, obstacle_kd_tree):
 
+        print("")
+        print("")
+        start = time.clock()
         sample_kd_tree = cKDTree(np.vstack((sample_x, sample_y)).T)
         road_map = []
         nSample = len(sample_x)
+        nSample2 = 20
 
         print("Kd tree size / len")
         print(sample_kd_tree)
         print(sample_kd_tree.size)
+        print("")
+        print(" Time init roadMap: " + str(time.clock()- start))
 
         for (i, ix, iy) in zip(range(nSample), sample_x, sample_y):
 
-            dists, indexes = sample_kd_tree.query([ix, iy], k=nSample)
+            dists, indexes = sample_kd_tree.query([ix, iy], k=self._edgeFromeOneSamplePoint, n_jobs=-1)
             edge_id = []
 
             for y in range(1, len(indexes)):
@@ -138,9 +172,6 @@ class PRM:
 
                 if not self.isCollision(ix, iy, nx, ny, obstacle_kd_tree):
                     edge_id.append(indexes[y])
-
-                if len(edge_id) >= self._edgeFromeOneSamplePoint:
-                    break
 
             road_map.append(edge_id)
 
@@ -393,10 +424,10 @@ if __name__ == "__main__":
     import time
     test = PRM(img, res, sx, sy, gx, gy, robotSize)
 
-    start = time.clock()
-    print("AStar starting")
-    print(" ")
-    rx, ry = test.startPlanner()
+    # start = time.clock()
+    # print("AStar starting")
+    # print(" ")
+    # rx, ry = test.startPlanner()
     #print("Elapsed time 1: " + str(time.clock()- start))
 
     start = time.clock()
