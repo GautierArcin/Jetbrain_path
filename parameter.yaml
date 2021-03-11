@@ -1,0 +1,6 @@
+/planner_PRM/robotFootprint: 0.160
+/planner_PRM/NSample: 500
+/planner_PRM/maxEdgeFromeOneSamplePoint: 20
+/planner_PRM/maxEdgeLength: 10.0
+/planner_PRM/precisionFactor: 2.0
+/planner_PRM/saveImage: True 
