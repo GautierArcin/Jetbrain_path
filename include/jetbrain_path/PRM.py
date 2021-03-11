@@ -29,7 +29,7 @@ class PRM:
 
     """
 
-    def __init__(self, image, res, sx, sy, gx, gy, robotSize, NSample=500, maxEdgeFromeOneSamplePoint=20, maxEdgeLength=10.0, _precisionFactor=2.5):
+    def __init__(self, image, res, sx, sy, gx, gy, robotSize, NSample=500, maxEdgeFromeOneSamplePoint=20, maxEdgeLength=10.0, _precisionFactor=1.5):
         self._image = image
         self._res = res
 
@@ -67,11 +67,11 @@ class PRM:
         sample_x, sample_y = self.generateSamplePoints(
             ox, oy, obstacle_kd_tree)
 
-        import time
-        start = time.clock()
+        #import time
+        #start = time.clock()
         road_map = self.generateRoadMap(
             sample_x, sample_y, obstacle_kd_tree)
-        print(" Time generate roadmap: " + str(time.clock() - start))
+        #print(" Time generate roadmap: " + str(time.clock() - start))
 
         rx, ry = self.dijkstra(road_map, sample_x, sample_y)
 
