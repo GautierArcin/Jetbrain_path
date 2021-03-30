@@ -12,17 +12,20 @@ from scipy.spatial.transform import Rotation as R
 import cv2
 import numpy as np
 import math
+from threading import Thread, Lock
 
 import tf
 
 from jetbrain_path import PRM
+
+
 
 import argparse
 
 
 class Planner:
 
-	def __init__(self, robotFootprint, plannerNSample, plannerEdgeFromeOneSamplePoint, maxEdgeLength, saveImage):
+	def __init__(self):
 		# Occupency Grid
 		#
 		# Note: we consider only 2d case, so we only take only into account x/y
@@ -44,12 +47,8 @@ class Planner:
 		self.path = None
 		self.path_map = None
 
-		# Config on planner
-		self.robotFootprint = robotFootprint
-		self.plannerNSample = plannerNSample 
-		self.plannerEdgeFromeOneSamplePoint = plannerEdgeFromeOneSamplePoint
-		self.maxEdgeLength = maxEdgeLength
-		self.saveImage = saveImage
+		#lock for callback
+		self.mutex = Lock()
 
 
 		#RosCallback
@@ -108,6 +107,9 @@ class Planner:
 
 
 	def executePlanner(self):
+		#Locking
+
+		self.mutex.acquire(1)
 
 		if(self.isPlannerExecutable()):
 
@@ -115,17 +117,33 @@ class Planner:
 			sy = self.startPoint[1]  # [m]
 			gx = self.endPoint[0]  # [m]
 			gy = self.endPoint[1]  # [m]
-			robotSize = self.robotFootprint / 2  # [m]
+
+			#Getting parameter
+			robotFootprint = rospy.get_param("/planner_PRM/robotFootprint")
+			nSample = rospy.get_param("/planner_PRM/NSample")
+			maxEdgeFromeOneSamplePoint = rospy.get_param("/planner_PRM/maxEdgeFromeOneSamplePoint")
+			maxEdgeLength = rospy.get_param("/planner_PRM/maxEdgeLength")
+			precisionFactor = rospy.get_param("/planner_PRM/precisionFactor")
+
+			robotSize = robotFootprint / 2  # [m]
 
 			messageToLog =  "calling Prm planner with : "
-			messageToLog += "Sp : " + str(sx) + ", " + str(sy)
-			messageToLog += ", Gp : " + str(gx) + ", " + str(gy)
-			messageToLog += ", Rz : " + str(robotSize) 
-			messageToLog += ", CPM : " + str(round(self.oGridCPM))
+			messageToLog += "Sp: " + str(sx) + ", " + str(sy)
+			messageToLog += ", Gp: " + str(gx) + ", " + str(gy)
+			messageToLog += ", Rz: " + str(robotSize) 
+			messageToLog += ", CPM: " + str(round(self.oGridCPM)) + "\n"
+
+			messageToLog += "nSample: " + str(nSample) + ", "
+			messageToLog += "maxNbEdge: " + str(maxEdgeFromeOneSamplePoint) + ", "
+			messageToLog += "maxEdgeLength: " + str(maxEdgeLength) + ", "
+			messageToLog += "precisionFactor: " + str(precisionFactor) 
 			rospy.loginfo(messageToLog)
 
+
+
 			beforeTime = rospy.Time.now()
-			Planner = PRM(self.image , round(self.oGridCPM), sx, sy, gx, gy, robotSize, self.plannerNSample, self.plannerEdgeFromeOneSamplePoint, self.maxEdgeLength)
+
+			Planner = PRM(self.image , round(self.oGridCPM), sx, sy, gx, gy, robotSize, nSample, maxEdgeFromeOneSamplePoint, maxEdgeLength, precisionFactor)
 			rx, ry = Planner.startPlanner()
 			afterTime = rospy.Time.now()
 
@@ -133,7 +151,8 @@ class Planner:
 			difference += (afterTime.nsecs - beforeTime.nsecs) * 0.000000001
 
 			if rx is not None and len(rx) > 1:
-				if(self.saveImage): 
+				saveImage = rospy.get_param("/planner_PRM/saveImage")
+				if(saveImage): 
 					Planner.saveToVideo(rx, ry, True)
 				npRx = np.asarray(rx)
 				npRy = np.asarray(ry)
@@ -182,6 +201,9 @@ class Planner:
 			else:
 				message = "goal not found in " + str( difference) + "s... Try to change points or parameter of the planner."
 				rospy.logwarn(message)
+
+		#relashing mutex
+		self.mutex.release()
 
 	def brodcastTransform(self, trans, rot, time, tf1, tf2):
 		br = tf.TransformBroadcaster()
@@ -251,11 +273,15 @@ class Planner:
 		#if self.oGrid is not None: 
 		# Get opencv-ready image from current ogrid (255 is occupied, 0 is clear)
 		oGridThreeshold = 90
-		occImg = 255*np.greater(self.oGrid, oGridThreeshold).astype(np.uint8)
+		elements = range(0,oGridThreeshold)
+		#occImg = 255*np.greater(np.self.oGrid, oGridThreeshold).astype(np.uint8)
+		occImg = 255*np.isin(self.oGrid, elements, invert=True).astype(np.uint8)
 
 		#Flip the image (Might be Uncessary, did it to have the same orientation as Rviz vizualization)
 		occImgFlip = cv2.flip(occImg, 1)
-
+		#cv2.imshow("test",occImgFlip)
+		#cv2.waitKey(0)
+		#cv2.destroyAllWindows()
 		self.image = occImgFlip
 
 		height, width  = occImg.shape 
@@ -266,17 +292,7 @@ class Planner:
 
 if __name__ == '__main__':
 	try:
-		parser = argparse.ArgumentParser()
-		# robotFootprint, plannerNSample, plannerEdgeFromeOneSamplePoint, maxEdgeLength, saveImage):
-
-		parser.add_argument('--robotSize', dest="robotFoot", default=0.160, type=float, help="Diameter of the robot [m]")
-		parser.add_argument('--plannerNSample', dest="nSample", default=500, type=int, help="Number of point to sample in Planner")
-		parser.add_argument('--plannerEdgeFromeOneSamplePoint', dest="plannerEdge", default=10, type=int, help="Maximum edge from one sample point")
-		parser.add_argument('--maxEdgeLength', dest="maxEdge", default=10.0, type=float, help="Max length of edge in planner [m]")
-		parser.add_argument('--saveImage', dest="saveImage", default=False, type=bool, help="Save planning to video + gif ? (default: false)")
-		args = parser.parse_args()
-		parser.print_help()
-		Planner(args.robotFoot, args.nSample, args.plannerEdge, args.maxEdge, args.saveImage)
+		Planner()
 
 	except rospy.ROSInterruptException:
 		pass
